@@ -1,0 +1,16 @@
+syntax="proto3";
+
+package model;
+
+option go_package = "/model";
+
+message BaseResp {
+  int64  code = 1;
+  string msg  = 2;
+}
+
+message UpyunToken {
+  string policy        = 1;
+  string authorization = 2;
+  string bucket        = 3;
+}
