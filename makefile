@@ -76,3 +76,7 @@ endif
 .PHONY: env-up
 env-up:
 	@docker compose -f ./docker/compose.yml up -d
+
+.PHONY: env-down
+env-down:
+	@ cd ./docker && docker compose down
