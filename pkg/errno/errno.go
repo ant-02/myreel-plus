@@ -1,86 +1,88 @@
 package errno
 
 import (
+	"errors"
 	"fmt"
 	"io"
-	"runtime"
-	"strings"
 )
 
 type ErrNo struct {
-	ErrorMsg string
-	err      error
-	stack    *stack
+	ErrorCode int64
+	ErrorMsg  string
+	stack     *stack
 }
 
-func (e *ErrNo) Error() string {
-	if e == nil {
-		return ""
+func (e ErrNo) Error() string {
+	return fmt.Sprintf("[%d] %s", e.ErrorCode, e.ErrorMsg)
+}
+
+func NewErrNo(code int64, msg string) ErrNo {
+	return ErrNo{
+		ErrorCode: code,
+		ErrorMsg:  msg,
 	}
-	return fmt.Sprintf("%s", e.ErrorMsg)
 }
 
-func (e *ErrNo) WithStack() error {
-	e.stack = callers(3)
+func NewErrNoWithStack(code int64, msg string) ErrNo {
+	return ErrNo{
+		ErrorCode: code,
+		ErrorMsg:  msg,
+		stack:     callers(),
+	}
+}
+
+func Errorf(code int64, template string, args ...interface{}) ErrNo {
+	return ErrNo{
+		ErrorCode: code,
+		ErrorMsg:  fmt.Sprintf(template, args...),
+		stack:     callers(),
+	}
+}
+
+// WithMessage will replace default msg to new
+func (e ErrNo) WithMessage(msg string) ErrNo {
+	e.ErrorMsg = msg
 	return e
 }
 
-func (e *ErrNo) Unwrap() error {
-	return e.err
+// WithError will add error msg after Message
+func (e ErrNo) WithError(err error) ErrNo {
+	e.ErrorMsg = e.ErrorMsg + ", " + err.Error()
+	return e
 }
 
-func (e *ErrNo) StackTrace() string {
-	if e == nil {
-		return ""
+func (e ErrNo) StackTrace() any {
+	if e.stack == nil { // nil 地狱
+		return nil
 	}
-
-	var builder strings.Builder
-	builder.WriteString(e.Error())
-	builder.WriteString("\n")
-
-	if e.stack != nil && len(*e.stack) > 0 {
-		frames := runtime.CallersFrames(*e.stack)
-		for {
-			frame, more := frames.Next()
-			if frame.File == "" {
-				if !more {
-					break
-				}
-				continue // 跳过无效帧
-			}
-			builder.WriteString(fmt.Sprintf("\t%s:%d %s\n", frame.File, frame.Line, frame.Function))
-			if !more {
-				break
-			}
-		}
-	} else if e.err != nil {
-		if next, ok := e.err.(*ErrNo); ok {
-			builder.WriteString(next.StackTrace())
-		} else {
-			builder.WriteString(e.err.Error())
-			builder.WriteString("\n")
-		}
-	}
-	return builder.String()
+	return e.stack
 }
 
-func (e *ErrNo) Format(st fmt.State, verb rune) {
+func (e ErrNo) Format(st fmt.State, verb rune) {
 	switch verb {
-	case 'v':
-		if st.Flag('+') {
-			io.WriteString(st, e.StackTrace())
-			return
-		}
-		fallthrough
 	case 's':
 		io.WriteString(st, e.Error())
+	case 'v':
+		io.WriteString(st, e.Error())
+		switch {
+		case st.Flag('+'):
+			e.stack.Format(st, verb)
+		}
 	}
 }
 
-func Errorf(err error, msg string, args ...interface{}) error {
-	return &ErrNo{
-		ErrorMsg: fmt.Sprintf(msg, args...),
-		err:      err,
-		stack:    nil,
+// ConvertErr convert error to ErrNo
+// in Default user ServiceErrorCode
+func ConvertErr(err error) ErrNo {
+	if err == nil {
+		return Success
 	}
+	errno := ErrNo{}
+	if errors.As(err, &errno) {
+		return errno
+	}
+
+	s := InternalServiceError
+	s.ErrorMsg = err.Error()
+	return s
 }

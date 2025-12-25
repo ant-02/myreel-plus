@@ -5,25 +5,19 @@ package main
 import (
 	"github.com/ant-02/myreel-plus/config"
 	"github.com/ant-02/myreel-plus/internal/gateway/router"
-	"github.com/ant-02/myreel-plus/pkg/util"
-	"github.com/bytedance/gopkg/util/logger"
+	"github.com/ant-02/myreel-plus/internal/gateway/rpc"
+	"github.com/ant-02/myreel-plus/pkg/constants"
 
 	"github.com/cloudwego/hertz/pkg/app/server"
 )
 
 func init() {
-	config.Init()
+	config.Init(constants.GatewayServiceName)
+	rpc.Init()
 }
 
 func main() {
-	addr, err := util.GetAvailablePort()
-	if err != nil {
-		logger.Fatalf("User: get available port failed, err: %v", err)
-	}
-
-	h := server.New(
-		server.WithHostPorts(addr),
-	)
+	h := server.Default()
 
 	router.GeneratedRegister(h)
 	h.Spin()

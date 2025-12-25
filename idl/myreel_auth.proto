@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package myreel.auth;
+
+option go_package = "/auth";
+
+import "model.proto";
+
+message User {
+  string username   = 1;
+  string avatar_url = 2;
+}
+
+message Token {
+  string access_token        = 1;
+  string access_expire_time  = 2;
+  string refresh_token       = 3;
+  string refresh_expire_time = 4;
+}
+
+message UserWithToken {
+  User  user  = 1;
+  Token token = 2;
+}
+
+message LoginRequest {
+  string identity = 1;
+  string password = 2;
+  int64  identity_type   = 3;
+}
+
+message LoginResponse {
+  model.BaseResp base = 1;
+}
+
+message LoginMFAVerifyRequest {
+  string code = 1;
+}
+
+message LoginMFAVerifyResponse {
+  model.BaseResp base = 1;
+}
+
+message RegisterRequest {
+  string identity = 1;
+  int64  identity_type   = 2;
+}
+
+message RegisterResponse {
+  model.BaseResp base = 1;
+}
+
+message RegisterMFAVerifyRequest {
+  string code = 1;
+}
+
+message RegisterMFAVerifyResponse {
+  model.BaseResp base = 1;
+}
+
+// 身份认证服务
+service AuthService {
+  // 登入接口
+  rpc Login(LoginRequest) returns (LoginResponse);
+}

@@ -5,10 +5,10 @@ ARCH := $(shell uname -m)
 PREFIX = "[Makefile]"
 # 目录相关
 DIR := $(shell pwd)
-SCRIPT := $(DIR)/script
 IDL_PATH := $(DIR)/idl
 OUTPUT := $(DIR)/output
 DOCKER_PATH := $(DIR)/docker
+SCRIPT := $(DOCKER_PATH)/script
 ENV_PATH := $(DOCKER_PATH)/env
 
 # 项目 MODULE 名
@@ -18,7 +18,7 @@ MODULE := github.com/ant-02/myreel-plus
 SESSION := myreel
 
 # 服务名
-SERVICES := gateway
+SERVICES := gateway auth
 
 # hertz 生成
 .PHONY: hz-%
@@ -69,8 +69,10 @@ ifndef BUILD_ONLY
 		tmux select-layout -t "$@" even-horizontal; \
 	fi
 	@echo "$(PREFIX) Running $@ service in tmux..."
-	@tmux send-keys -t $@.0 'export SERVICE=$@; \
-	export ENV_FILE=$(ENV_PATH)/$@.env; \
-	bash $(SCRIPT)/entrypoint.sh' C-m
+	@tmux send-keys -t $@.0 'export SERVICE=$@ && bash ./docker/script/entrypoint.sh' C-m
 	@tmux select-pane -t $@.1
 endif
+
+.PHONY: env-up
+env-up:
+	@docker compose -f ./docker/compose.yml up -d
